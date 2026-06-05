@@ -1,7 +1,9 @@
  
 # systems-nvim
 
-A minimalist ncim configuration focused on C, C++, Rust systems codebases.
+A minimalist nvim configuration focused on C, C++, Rust systems codebases.
+
+![minimal theme](screenshots/minimal-nvim-theme.png)
 
 ## Focus
 
