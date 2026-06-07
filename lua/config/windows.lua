@@ -26,36 +26,6 @@
    -- { "morhetz/gruvbox" }, 
    -- { "jacoborus/tender.vim" },
    { "nvim-telescope/telescope.nvim" },
-   -- { "neanias/everforest-nvim", name = "everforest", version = false, lazy = false, priority = 1000 },
-   -- {
-   --   "nvim-lualine/lualine.nvim",
-   --   dependencies = { "nvim-tree/nvim-web-devicons" },
-   --   config = function()
-   --     local custom_theme = require("lualine.themes.everforest")
-   --     -- Override just the background of the normal mode statusline
-   --     custom_theme.normal.c.bg = "#5f6f71"  -- ⬅️ Higher contrast gray-green
-   --     custom_theme.normal.c.fg = "#f0f0f0"  -- ⬅️ Brighter text
-   -- 
-   --     -- Optionally make inactive windows fade a bit
-   --     custom_theme.inactive.c.bg = "#3a4245"
-   --     custom_theme.inactive.c.fg = "#7a8478"
-   -- 
-   --     require("lualine").setup({
-   --       options = {
-   --         theme = custom_theme,
-   --         section_separators = '',
-   --         component_separators = '|',
-   --       },
-   --         sections = {
-   --       -- show path relative to current working dir
-   --       lualine_c = {
-   --         { 'filename', path = 1, shorting_target = 40 },  -- 0=name, 1=relative, 2=absolute
-   --       },
-   -- },    
-   --     })
-   --   end
-   -- },
-
    {
      "nvim-lualine/lualine.nvim",
      dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -115,42 +85,11 @@
  vim.o.ttimeoutlen = 10
  vim.o.updatetime  = 200   -- quicker CursorHold/diagnostics
 
- vim.o.relativenumber = true
+ vim.o.relativenumber = false
  vim.o.scrolloff      = 6
 
  vim.o.lazyredraw = true
 
-
-
- -- require("mason").setup()
- -- require("mason-lspconfig").setup({
- --   ensure_installed = { "clangd" },
- --   handlers = {
- --     ["clangd"] = function()
- --       local lspconfig = require("lspconfig")
- --       local util = require("lspconfig.util")
- --       local capabilities = require("cmp_nvim_lsp").default_capabilities()
- --       capabilities.offsetEncoding = { "utf-8" }
- --
- --       lspconfig.clangd.setup({
- --         root_dir = function(fname)
- --           return util.root_pattern("compile_commands.json", ".git", "CMakeLists.txt")(fname)
- --               or util.find_git_ancestor(fname)
- --         end,
- --         capabilities = capabilities,
- --         cmd = {
- --             "clangd",
- --             "--background-index",
- --             "--clang-tidy",
- --             "--clang-tidy-checks=-clang-diagnostic-unused-include",
- --             "--completion-style=detailed",
- --             "--header-insertion=never",
- --         },
- --       })
- --     end,
- --   }
- -- })
- --
 
  -- Enable LSP and clangd
  require("mason").setup()
@@ -235,22 +174,6 @@
    return path:gsub("\\", "/")
  end
 
- -- local function find_rust_projects(root_dir)
- --   if not root_dir then
- --     return {}
- --   end
- --
- --   local root = normalize_path(root_dir)
- --   local matches = vim.fn.glob(root .. "/out/*/rust-project.json", false, true)
- --
- --   for i, p in ipairs(matches) do
- --     matches[i] = normalize_path(p)
- --   end
- --
- --   table.sort(matches)
- --
- --   return matches
- -- end
 
 
  local function dedupe_paths(paths)
@@ -336,26 +259,20 @@
      end
    end,
 
-   settings = {
-     ["rust-analyzer"] = {},
-   },
+   -- settings = {
+   --   ["rust-analyzer"] = {},
+   -- },
+
+    settings = {
+      ["rust-analyzer"] = {
+        diagnostics = {
+          enable = true,
+        },
+        checkOnSave = true,
+      },
+    },
+
  })
-
-
- -- require('telescope').setup{
- --   defaults = {
- --     layout_config = { prompt_position = "top" },
- --     sorting_strategy = "ascending",
- --     file_ignore_patterns = {
- --      "%.git\\",       -- Excludes the '.git' directory
- --      "%.vs\\",       -- Excludes the '.git' directory
- --       "build\\",      -- Excludes the 'target' directory
- --       "out\\",      
- --       "external\\",      -- Excludes the 'target' directory
- --     },
- --   }
- -- }
- -- require('telescope.builtin').diagnostics()
 
 
 
@@ -424,33 +341,33 @@
    },
  })
 
- --  local function project_files()
-   -- Fast path for git repos: avoids generated files if they are ignored by git.
- --   local ok = pcall(builtin.git_files, {
- --     show_untracked = true,
- --   })
- --
- --   if not ok then
- --     builtin.find_files({
- --       hidden = true,
- --     })
- --   end
- -- end
+local function project_files()
+    local ok = pcall(builtin.git_files, {
+        show_untracked = true,
+        path_display = filename_first,
+    })
+
+    if not ok then
+        builtin.find_files({
+            hidden = true,
+            path_display = filename_first,
+        })
+    end
+end
 
 
- local function project_files()
-   local ok = pcall(builtin.git_files, {
-     show_untracked = true,
-     path_display = filename_first,
-   })
-
-   if not ok then
-     builtin.find_files({
-       hidden = true,
-       path_display = filename_first,
-     })
-   end
- end
+local function raw_files()
+    builtin.find_files({
+        find_command = {
+            "rg",
+            "--files",
+            "--hidden",
+            "--no-ignore",
+            "--no-ignore-parent",
+        },
+        path_display = filename_first,
+    })
+end
 
 
  vim.g.mapleader = " "
@@ -482,29 +399,13 @@
  vim.opt.termguicolors = true
  vim.opt.background = "dark"
 
- -- vim.g.everforest_background = 'medium'
- -- vim.g.everforest_better_performance = 1
- -- vim.g.everforest_enable_italic = 1
-
- -- vim.cmd([[colorscheme everforest]])
  vim.api.nvim_set_hl(0, "Cursor", { bg = "#a7c080", fg = "#1e2326" })  -- light green on dark background
  -- vim.o.statusline = "%f [%{getcwd()}] %y %m %r %= %l:%c"
 
 
- -- local builtin = require('telescope.builtin')
- -- vim.keymap.set('n', '<leader>ff', builtin.find_files, {})       -- fuzzy find files
- --
- -- vim.keymap.set('n', '<leader>fa', function()
- --   require('telescope.builtin').find_files({ hidden = true, no_ignore = true })
- -- end, { desc = "Find all files (no ignore)" })
- --
- -- vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})        -- grep through files
- -- vim.keymap.set('n', '<leader>fb', builtin.buffers, {})          -- switch buffers
- -- vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})        -- search help
-
 
  -- LSP navigation
- vim.keymap.set("n", "gD", function()
+ vim.keymap.set("n", "gd", function()
    builtin.lsp_definitions({
      jump_type = "never",
      show_line = true,
@@ -514,7 +415,7 @@
    desc = "LSP: definitions picker",
  })
 
- vim.keymap.set("n", "gd", vim.lsp.buf.definition, {
+ vim.keymap.set("n", "gD", vim.lsp.buf.definition, {
    desc = "LSP: raw go to definition",
  })
 
@@ -576,27 +477,6 @@
  vim.keymap.set("n", "<leader>ff", project_files, {
    desc = "Find project files",
  })
-
- -- vim.keymap.set("n", "<leader>fF", function()
- --   builtin.find_files({
- --     hidden = true,
- --   })
- -- end, {
- --   desc = "Find files with explicit excludes",
- -- })
- --
- -- vim.keymap.set("n", "<leader>fa", function()
- --   builtin.find_files({
- --     find_command = with_excludes({
- --       "rg",
- --       "--files",
- --       "--hidden",
- --       "--no-ignore",
- --     }),
- --   })
- -- end, {
- --   desc = "Find all files except generated dirs",
- -- })
 
 
  vim.keymap.set("n", "<leader>fF", function()
@@ -680,7 +560,7 @@
  vim.opt.shiftwidth = 4    -- how many spaces to use for each step of (auto)indent
  vim.opt.expandtab = true  -- convert tabs to spaces
 
- vim.opt.number = true
+ vim.opt.number = false
 
  vim.opt.autoindent = true
  vim.opt.smartindent = false
@@ -689,36 +569,6 @@
  vim.keymap.set('n', 'H', '^', { noremap = true })  -- H = line start
  vim.keymap.set('n', 'L', 'g_', { noremap = true }) -- L = line end (last non-blank)
 
- -- vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, { desc = "LSP: Go to Implementation" })
- -- -- LSP-powered “go to definition”
- -- vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { desc = 'LSP: Go to Definition' })
- -- -- Optional: show definition in a floating split without jumping
- -- vim.keymap.set('n', 'gD', vim.lsp.buf.type_definition, { desc = 'LSP: Go to Type-Def' })
- -- vim.keymap.set("n", "<leader>lr", function()
- --   require("telescope.builtin").lsp_references({
- --     include_declaration = false,
- --     show_line = true,
- --   })
- -- end, {
- --   desc = "LSP: references",
- -- })
- --
- -- vim.keymap.set("n", "<leader>lc", function()
- --   require("telescope.builtin").lsp_incoming_calls({
- --     show_line = true,
- --   })
- -- end, {
- --   desc = "LSP: callers / incoming calls",
- -- })
- --
- -- vim.keymap.set("n", "<leader>lo", function()
- --   require("telescope.builtin").lsp_outgoing_calls({
- --     show_line = true,
- --   })
- -- end, {
- --   desc = "LSP: callees / outgoing calls",
- -- })
- --
 
 
  vim.keymap.set("n", "<leader>q", function()
@@ -751,8 +601,6 @@
      fg      = "#d0c890", -- parchment general text
      status  = "#c9b47a", -- beige statusline
 
-     -- comment = "#70f070", -- bright lime (comments)
-     -- comment = "#55dd55", -- softer green, not neon
      comment = "#6aa06a",   -- softer, sage green
      -- comment = "#66ff66",
      str     = "#80f0ff", -- cyan (strings)
@@ -827,7 +675,6 @@
    hi("StatusLine",   { fg=C.bg, bg=C.status })
    hi("StatusLineNC", { fg=C.bg, bg=C.subtle })
  end
-
 
 
 
