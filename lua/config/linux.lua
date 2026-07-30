@@ -75,7 +75,7 @@ vim.g.mapleader = " "
 -- UI Options
 vim.opt.ignorecase    = true
 vim.opt.termguicolors = true
-vim.opt.number        = true   -- Show line numbers
+vim.opt.number        = false    -- Show line numbers
 vim.opt.relativenumber= false  -- DISABLE relative numbers
 vim.opt.scrolloff     = 6
 vim.opt.cursorline    = false  -- DISABLE highlight line
@@ -113,43 +113,87 @@ end
 --  5. LSP & COMPLETION (CLANGD)
 
 require("mason").setup()
+
 require("mason-lspconfig").setup({
   ensure_installed = { "clangd" },
+
+  -- We configure and enable clangd ourselves below.
+  automatic_enable = false,
 })
 
-local status, lspconfig = pcall(require, "lspconfig")
-if status then
-    -- 1. Load util directly to avoid the "framework" deprecation warning
-    local util = require("lspconfig.util")
+local capabilities = require("cmp_nvim_lsp").default_capabilities()
+capabilities.offsetEncoding = { "utf-8" }
 
+-- Prefer Mason's clangd; fall back to clangd from PATH.
+local mason_clangd = vim.fn.stdpath("data") .. "/mason/bin/clangd"
+local clangd = vim.fn.executable(mason_clangd) == 1
+    and mason_clangd
+    or "clangd"
 
-    local capabilities = require("cmp_nvim_lsp").default_capabilities()
-    capabilities.offsetEncoding = { "utf-8" }
+local function find_compile_commands_dir(root_dir)
+  if not root_dir then
+    return nil
+  end
 
-    -- Prefer Mason clangd if installed; fallback to system clangd
-    local mason_clangd = vim.fn.stdpath("data") .. "/mason/bin/clangd"
-    local clangd = (vim.fn.executable(mason_clangd) == 1) and mason_clangd or "clangd"
+  local patterns = {
+    root_dir .. "/compile_commands.json",
+    root_dir .. "/build/compile_commands.json",
+    root_dir .. "/build/*/compile_commands.json",
+    root_dir .. "/out/compile_commands.json",
+    root_dir .. "/out/*/compile_commands.json",
+  }
 
-    vim.lsp.config("clangd", {
-      cmd = {
-        clangd,
-        "--background-index",
-        "--clang-tidy",
-        "--header-insertion=never",
-        "--completion-style=detailed",
-      },
+  for _, pattern in ipairs(patterns) do
+    local matches = vim.fn.glob(pattern, false, true)
+    table.sort(matches)
 
-      -- These two are the *critical* missing pieces for auto-attach
-      filetypes = { "c", "cpp", "objc", "objcpp", "cuda" },
-      root_markers = { "compile_commands.json", ".git", "CMakeLists.txt" },
+    if #matches > 0 then
+      return vim.fs.dirname(matches[1])
+    end
+  end
 
-      capabilities = capabilities,
-    })
-
-    vim.lsp.enable("clangd")
-
-
+  return nil
 end
+
+vim.lsp.config("clangd", {
+  cmd = {
+    clangd,
+    "--background-index",
+    "--clang-tidy",
+    "--header-insertion=never",
+    "--completion-style=detailed",
+  },
+
+  filetypes = {
+    "c",
+    "cpp",
+    "objc",
+    "objcpp",
+    "cuda",
+  },
+
+  root_markers = {
+    "compile_commands.json",
+    ".git",
+    "CMakeLists.txt",
+  },
+
+  capabilities = capabilities,
+
+  before_init = function(params, config)
+    local cdb_dir = find_compile_commands_dir(config.root_dir)
+
+    if cdb_dir then
+      params.initializationOptions =
+          params.initializationOptions or {}
+
+      params.initializationOptions.compilationDatabasePath =
+          cdb_dir
+    end
+  end,
+})
+
+vim.lsp.enable("clangd")
 
 -- Autocompletion Setup
 local cmp = require("cmp")
