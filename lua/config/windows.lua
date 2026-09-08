@@ -534,6 +534,14 @@ end
  vim.keymap.set('n', '<A-j>', '5j', { noremap = true, silent = true }) -- Alt+j
  vim.keymap.set('n', '<A-k>', '5k', { noremap = true, silent = true }) -- Alt+k
 
+vim.keymap.set("x", "p", '"_dP', {
+    noremap = true,
+    silent = true,
+    desc = "Paste without overwriting clipboard",
+})
+
+
+
  -- Force treesitter to use clang on Windows
  require("nvim-treesitter.install").compilers = { "cl" }
 

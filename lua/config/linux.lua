@@ -238,12 +238,27 @@ vim.keymap.set("n", "<Tab>", ":BufferLineCycleNext<CR>", {})
 vim.keymap.set("n", "<S-Tab>", ":BufferLineCyclePrev<CR>", {})
 vim.keymap.set("n", "<leader>q", ":bnext | bd #<CR>", { desc = "Close buffer" })
 
+vim.keymap.set("x", "p", '"_dP', {
+    noremap = true,
+    silent = true,
+    desc = "Paste without overwriting clipboard",
+})
+
 -- LSP
 -- vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { desc = 'Go to Definition' })
 vim.keymap.set('n', 'gd', builtin.lsp_definitions, { desc = 'Go to Definition' })
 vim.keymap.set('n', 'gD', vim.lsp.buf.type_definition, { desc = 'Go to Type' })
 vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, { desc = 'Go to Impl' })
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = "Show Error" })
+
+vim.keymap.set("n", "grr", function()
+  builtin.lsp_references({
+    include_declaration = false,
+    show_line = true,
+  })
+end, {
+  desc = "LSP: references",
+})
 
 -- Fast Movement
 vim.keymap.set('n', '<A-j>', '5j', { noremap = true, silent = true })
